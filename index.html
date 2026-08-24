@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Compressor de PDF</title>
+<meta name="description" content="Comprima arquivos PDF direto no navegador. Escolha o nível de compressão, veja o tamanho antes e depois e baixe o resultado." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗜️</text></svg>" />
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="logo">🗜️</span> <strong>Compressor de PDF</strong></div>
+  <span class="badge">100% no seu navegador · nenhum arquivo é enviado</span>
+</header>
+
+<main>
+  <!-- Etapa 1: upload -->
+  <section id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Selecionar arquivo PDF">
+    <div class="dz-icon">📄</div>
+    <h1>Solte seu PDF aqui</h1>
+    <p>ou <span class="link">clique para escolher um arquivo</span></p>
+    <p class="hint">O arquivo é processado localmente, no seu computador.</p>
+    <input type="file" id="fileInput" accept="application/pdf,.pdf" hidden />
+  </section>
+
+  <!-- Etapa 2: análise + níveis -->
+  <section id="workspace" class="workspace" hidden>
+    <div class="filecard">
+      <div class="fileinfo">
+        <span class="fi-icon">📄</span>
+        <div>
+          <div class="fi-name" id="fileName">arquivo.pdf</div>
+          <div class="fi-meta"><span id="pageCount">–</span> · tamanho atual <strong id="originalSize">–</strong></div>
+        </div>
+      </div>
+      <button class="ghost" id="resetBtn" type="button">Trocar arquivo</button>
+    </div>
+
+    <div class="analysis" id="analysisBar">
+      <div class="spinner" aria-hidden="true"></div>
+      <span id="analysisText">Analisando o quanto dá para comprimir…</span>
+    </div>
+
+
+    <h2 class="section-title">1 · Escolha as páginas</h2>
+    <p class="section-sub">Use os atalhos, digite intervalos (ex.: <code>1-3, 7, 10-12</code>) ou clique nas páginas na grade.</p>
+
+    <div class="pagepicker">
+      <div class="pp-row">
+        <input type="text" id="rangeInput" class="range-input" placeholder="Ex.: 1-3, 7, 10-12" spellcheck="false" />
+        <div class="pp-quick">
+          <button type="button" class="ghost" data-quick="all">Todas</button>
+          <button type="button" class="ghost" data-quick="odd">Ímpares</button>
+          <button type="button" class="ghost" data-quick="even">Pares</button>
+          <button type="button" class="ghost" data-quick="none">Limpar</button>
+        </div>
+      </div>
+      <div class="pagegrid" id="pageGrid"></div>
+      <div class="pp-count" id="pageSelCount">–</div>
+    </div>
+
+    <h2 class="section-title">2 · O que fazer com elas</h2>
+    <div class="modes" id="modes">
+      <button type="button" class="mode" data-mode="compress" aria-pressed="true">
+        <div class="lv-name">Comprimir</div>
+        <div class="lv-desc">Reduz o tamanho do arquivo. Gera o PDF só com as páginas selecionadas.</div>
+      </button>
+      <button type="button" class="mode" data-mode="split" aria-pressed="false">
+        <div class="lv-name">Somente separar (quebrar o PDF)</div>
+        <div class="lv-desc">Extrai as páginas selecionadas sem recomprimir — qualidade e texto originais.</div>
+      </button>
+    </div>
+
+    <div id="compressOptions">
+    <h2 class="section-title">3 · Escolha o nível de compressão</h2>
+    <p class="section-sub">As estimativas abaixo são calculadas a partir de páginas reais do seu documento.</p>
+
+    <div class="levels" id="levels"></div>
+
+    <label class="switch">
+      <input type="checkbox" id="grayscale" />
+      <span>Converter em tons de cinza <em>(reduz mais o tamanho)</em></span>
+    </label>
+    </div>
+
+    <div class="summary" id="summary" hidden>
+      <div class="sum-col">
+        <span class="sum-label">Tamanho atual</span>
+        <span class="sum-value" id="sumBefore">–</span>
+      </div>
+      <div class="sum-arrow">→</div>
+      <div class="sum-col">
+        <span class="sum-label"><span id="sumAfterLabel">Depois da compressão</span> <em id="sumEstTag">(estimado)</em></span>
+        <span class="sum-value accent" id="sumAfter">–</span>
+      </div>
+      <div class="sum-col right">
+        <span class="sum-label">Economia</span>
+        <span class="sum-value good" id="sumSaving">–</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="compressBtn" type="button" disabled>Comprimir PDF</button>
+      <a class="primary success" id="downloadBtn" hidden download>⬇ Baixar PDF</a>
+    </div>
+
+    <div class="progress" id="progress" hidden>
+      <div class="bar"><div class="bar-fill" id="barFill"></div></div>
+      <span id="progressText">Comprimindo…</span>
+    </div>
+
+    <p class="error" id="error" hidden></p>
+    <p class="note">A compressão rasteriza as páginas em imagens otimizadas: o layout é preservado, mas o texto deixa de ser selecionável. Se o resultado ficar maior que o original, o arquivo original é mantido.</p>
+  </section>
+</main>
+
+<footer>Feito para rodar na Vercel · processamento local com pdf.js e pdf-lib · sem upload para servidor</footer>
+
+<script src="/vendor/pdf.min.js"></script>
+<script src="/vendor/pdf-lib.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
