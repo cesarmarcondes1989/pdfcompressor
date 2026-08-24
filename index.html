@@ -3,18 +3,24 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Compressor de PDF</title>
-<meta name="description" content="Comprima arquivos PDF direto no navegador. Escolha o nível de compressão, veja o tamanho antes e depois e baixe o resultado." />
+<title>PDF: comprimir, separar e juntar</title>
+<meta name="description" content="Comprima, separe e junte arquivos PDF direto no navegador. Escolha o nível de compressão, veja o tamanho antes e depois e baixe o resultado." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗜️</text></svg>" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
 <header class="topbar">
-  <div class="brand"><span class="logo">🗜️</span> <strong>Compressor de PDF</strong></div>
+  <div class="brand"><span class="logo">🗜️</span> <strong>Ferramentas de PDF</strong></div>
   <span class="badge">100% no seu navegador · nenhum arquivo é enviado</span>
 </header>
 
 <main>
+  <nav class="tabs" id="tabs" aria-label="Ferramentas">
+    <button type="button" class="tab" data-view="compress" aria-pressed="true">🗜️ Comprimir / separar</button>
+    <button type="button" class="tab" data-view="merge" aria-pressed="false">🔗 Juntar PDFs</button>
+  </nav>
+
+  <section id="viewCompress">
   <!-- Etapa 1: upload -->
   <section id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Selecionar arquivo PDF">
     <div class="dz-icon">📄</div>
@@ -112,6 +118,54 @@
 
     <p class="error" id="error" hidden></p>
     <p class="note">A compressão rasteriza as páginas em imagens otimizadas: o layout é preservado, mas o texto deixa de ser selecionável. Se o resultado ficar maior que o original, o arquivo original é mantido.</p>
+  </section>
+  </section>
+
+  <section id="viewMerge" hidden>
+    <section id="mergeDrop" class="dropzone" tabindex="0" role="button" aria-label="Selecionar arquivos PDF para juntar">
+      <div class="dz-icon">🔗</div>
+      <h1>Solte aqui os PDFs que quer juntar</h1>
+      <p>ou <span class="link">clique para escolher os arquivos</span></p>
+      <p class="hint">Pode selecionar vários de uma vez — a ordem é ajustável depois.</p>
+      <input type="file" id="mergeInput" accept="application/pdf,.pdf" multiple hidden />
+    </section>
+
+    <p class="error" id="mergeError" hidden></p>
+
+    <div id="mergeWorkspace" hidden>
+      <h2 class="section-title">Arquivos na ordem em que serão juntados</h2>
+      <p class="section-sub">Use ↑ e ↓ para reordenar. No campo <em>páginas</em> dá para pegar só um trecho de cada arquivo (ex.: <code>1-3, 7</code>); vazio significa o arquivo inteiro.</p>
+
+      <ol class="mergelist" id="mergeList"></ol>
+
+      <div class="actions compact">
+        <button class="ghost" id="addMoreBtn" type="button">+ Adicionar mais PDFs</button>
+        <button class="ghost" id="clearMergeBtn" type="button">Limpar lista</button>
+      </div>
+
+      <div class="summary" id="mergeSummary">
+        <div class="sum-col">
+          <span class="sum-label">Arquivos</span>
+          <span class="sum-value" id="mergeCount">–</span>
+        </div>
+        <div class="sum-col">
+          <span class="sum-label">Páginas no resultado</span>
+          <span class="sum-value" id="mergePages">–</span>
+        </div>
+        <div class="sum-col right">
+          <span class="sum-label">Tamanho <em id="mergeSizeTag">(somado)</em></span>
+          <span class="sum-value accent" id="mergeSize">–</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="mergeBtn" type="button">Juntar PDFs</button>
+        <a class="primary success" id="mergeDownload" hidden download>⬇ Baixar PDF unido</a>
+        <button class="ghost" id="compressMergedBtn" type="button" hidden>Comprimir o resultado →</button>
+      </div>
+
+      <p class="note">A junção preserva o conteúdo original de cada arquivo — nada é recomprimido, o texto continua selecionável. Se quiser reduzir o tamanho do arquivo final, use “Comprimir o resultado”.</p>
+    </div>
   </section>
 </main>
 

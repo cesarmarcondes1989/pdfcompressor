@@ -468,6 +468,218 @@
     el.progress.hidden = true;
   }
 
+
+  /* ================= junção de PDFs ================= */
+  const mergeEl = {
+    view: $('viewMerge'), viewCompress: $('viewCompress'), tabs: $('tabs'),
+    drop: $('mergeDrop'), input: $('mergeInput'), workspace: $('mergeWorkspace'),
+    list: $('mergeList'), count: $('mergeCount'), pages: $('mergePages'),
+    size: $('mergeSize'), sizeTag: $('mergeSizeTag'), btn: $('mergeBtn'),
+    download: $('mergeDownload'), compressMerged: $('compressMergedBtn'),
+    error: $('mergeError'), addMore: $('addMoreBtn'), clear: $('clearMergeBtn'),
+  };
+
+  const merge = { items: [], resultUrl: null, resultFile: null, busy: false, seq: 0 };
+
+  const showMergeError = (msg) => { mergeEl.error.textContent = msg; mergeEl.error.hidden = false; };
+  const clearMergeError = () => { mergeEl.error.hidden = true; };
+
+  function setView(name) {
+    [...mergeEl.tabs.children].forEach((b) =>
+      b.setAttribute('aria-pressed', String(b.dataset.view === name)));
+    mergeEl.viewCompress.hidden = name !== 'compress';
+    mergeEl.view.hidden = name !== 'merge';
+  }
+
+  /* páginas escolhidas de um item (intervalo vazio = arquivo inteiro) */
+  function itemPages(item) {
+    const text = (item.range || '').trim();
+    if (!text) return Array.from({ length: item.pageCount }, (_, i) => i + 1);
+    return [...parseRanges(text, item.pageCount)].sort((a, b) => a - b);
+  }
+
+  async function addMergeFiles(fileList) {
+    const files = [...fileList].filter(
+      (f) => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+    if (!files.length) { showMergeError('Selecione ao menos um arquivo PDF.'); return; }
+    clearMergeError();
+    resetMergeResult();
+
+    const rejected = [];
+    for (const file of files) {
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer());
+        const doc = await PDFLib.PDFDocument.load(bytes, { ignoreEncryption: true });
+        merge.items.push({
+          id: ++merge.seq, file, bytes, pageCount: doc.getPageCount(), range: '',
+        });
+      } catch (err) {
+        console.error(err);
+        rejected.push(file.name);
+      }
+    }
+    if (rejected.length) {
+      showMergeError('Não foi possível ler: ' + rejected.join(', ') +
+        '. O arquivo pode estar corrompido ou protegido por senha.');
+    }
+    if (merge.items.length) {
+      mergeEl.drop.hidden = true;
+      mergeEl.workspace.hidden = false;
+    }
+    renderMerge();
+  }
+
+  function renderMerge() {
+    mergeEl.list.innerHTML = '';
+    merge.items.forEach((item, i) => {
+      const pages = itemPages(item);
+      const li = document.createElement('li');
+      li.className = 'mergeitem';
+      li.innerHTML = `
+        <span class="mi-order">${i + 1}</span>
+        <span class="mi-body">
+          <span class="mi-name">${escapeHtml(item.file.name)}</span>
+          <span class="mi-meta">${item.pageCount} página(s) · ${formatBytes(item.file.size)}${
+            pages.length !== item.pageCount ? ` · usando ${pages.length} página(s)` : ''
+          }</span>
+        </span>`;
+
+      const range = document.createElement('input');
+      range.type = 'text';
+      range.className = 'mi-range' + (item.range.trim() && !pages.length ? ' invalid' : '');
+      range.placeholder = 'páginas: todas';
+      range.value = item.range;
+      range.title = 'Ex.: 1-3, 7 — vazio usa o arquivo inteiro';
+      range.addEventListener('input', () => {
+        item.range = range.value;
+        resetMergeResult();
+        updateMergeSummary();
+        const sel = itemPages(item);
+        range.classList.toggle('invalid', !!item.range.trim() && !sel.length);
+        li.querySelector('.mi-meta').textContent =
+          `${item.pageCount} página(s) · ${formatBytes(item.file.size)}` +
+          (sel.length !== item.pageCount ? ` · usando ${sel.length} página(s)` : '');
+      });
+
+      const actions = document.createElement('span');
+      actions.className = 'mi-actions';
+      const mk = (label, title, disabled, fn, cls = '') => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'iconbtn ' + cls; b.textContent = label;
+        b.title = title; b.disabled = disabled;
+        b.addEventListener('click', fn);
+        return b;
+      };
+      actions.append(
+        mk('↑', 'Mover para cima', i === 0, () => moveItem(i, -1)),
+        mk('↓', 'Mover para baixo', i === merge.items.length - 1, () => moveItem(i, 1)),
+        mk('✕', 'Remover da lista', false, () => removeItem(i), 'danger'),
+      );
+
+      li.append(range, actions);
+      mergeEl.list.appendChild(li);
+    });
+    updateMergeSummary();
+  }
+
+  function moveItem(i, delta) {
+    if (merge.busy) return;
+    const j = i + delta;
+    if (j < 0 || j >= merge.items.length) return;
+    [merge.items[i], merge.items[j]] = [merge.items[j], merge.items[i]];
+    resetMergeResult();
+    renderMerge();
+  }
+
+  function removeItem(i) {
+    if (merge.busy) return;
+    merge.items.splice(i, 1);
+    resetMergeResult();
+    if (!merge.items.length) clearMerge();
+    else renderMerge();
+  }
+
+  function clearMerge() {
+    merge.items = [];
+    resetMergeResult();
+    clearMergeError();
+    mergeEl.input.value = '';
+    mergeEl.list.innerHTML = '';
+    mergeEl.workspace.hidden = true;
+    mergeEl.drop.hidden = false;
+  }
+
+  function updateMergeSummary(realBytes) {
+    const totalPages = merge.items.reduce((sum, it) => sum + itemPages(it).length, 0);
+    const totalBytes = merge.items.reduce((sum, it) => sum + it.file.size, 0);
+    mergeEl.count.textContent = merge.items.length;
+    mergeEl.pages.textContent = totalPages;
+    mergeEl.sizeTag.textContent = realBytes ? '(final)' : '(somado)';
+    mergeEl.size.textContent = formatBytes(realBytes ?? totalBytes);
+    mergeEl.btn.disabled = merge.busy || totalPages === 0;
+  }
+
+  function resetMergeResult() {
+    if (merge.resultUrl) URL.revokeObjectURL(merge.resultUrl);
+    merge.resultUrl = null;
+    merge.resultFile = null;
+    mergeEl.download.hidden = true;
+    mergeEl.compressMerged.hidden = true;
+    mergeEl.btn.hidden = false;
+    mergeEl.sizeTag.textContent = '(somado)';
+  }
+
+  async function doMerge() {
+    if (merge.busy || !merge.items.length) return;
+    merge.busy = true;
+    clearMergeError();
+    resetMergeResult();
+    mergeEl.btn.disabled = true;
+    mergeEl.btn.textContent = 'Juntando…';
+
+    try {
+      const out = await PDFLib.PDFDocument.create();
+      let used = 0;
+      for (const item of merge.items) {
+        const pages = itemPages(item);
+        if (!pages.length) continue;
+        const src = await PDFLib.PDFDocument.load(item.bytes, { ignoreEncryption: true });
+        const copied = await out.copyPages(src, pages.map((n) => n - 1));
+        copied.forEach((p) => out.addPage(p));
+        used += pages.length;
+        await sleep();
+      }
+      if (!used) throw new Error('nenhuma página selecionada');
+
+      const bytes = await out.save({ useObjectStreams: true });
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const name = (merge.items[0].file.name.replace(/\.pdf$/i, '') + '-unido').slice(0, 120) + '.pdf';
+      merge.resultUrl = URL.createObjectURL(blob);
+      merge.resultFile = new File([blob], name, { type: 'application/pdf' });
+
+      mergeEl.download.href = merge.resultUrl;
+      mergeEl.download.download = name;
+      mergeEl.download.textContent = `⬇ Baixar PDF unido (${formatBytes(blob.size)})`;
+      mergeEl.download.hidden = false;
+      mergeEl.compressMerged.hidden = false;
+      mergeEl.btn.hidden = true;
+      updateMergeSummary(blob.size);
+    } catch (err) {
+      console.error(err);
+      showMergeError('Não foi possível juntar os arquivos: ' +
+        (err && err.message ? err.message : 'erro desconhecido'));
+    } finally {
+      merge.busy = false;
+      mergeEl.btn.textContent = 'Juntar PDFs';
+      updateMergeSummary(merge.resultFile ? merge.resultFile.size : undefined);
+    }
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>"']/g, (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
   /* ---------- eventos ---------- */
   el.dropzone.addEventListener('click', () => el.fileInput.click());
   el.dropzone.addEventListener('keydown', (e) => {
@@ -478,7 +690,11 @@
     el.dropzone.addEventListener(t, (e) => { e.preventDefault(); el.dropzone.classList.add('over'); }));
   ['dragleave', 'drop'].forEach((t) =>
     el.dropzone.addEventListener(t, (e) => { e.preventDefault(); el.dropzone.classList.remove('over'); }));
-  el.dropzone.addEventListener('drop', (e) => loadFile(e.dataTransfer.files[0]));
+  el.dropzone.addEventListener('drop', (e) => {
+    const files = e.dataTransfer.files;
+    if (files.length > 1) { setView('merge'); addMergeFiles(files); }
+    else loadFile(files[0]);
+  });
   window.addEventListener('dragover', (e) => e.preventDefault());
   window.addEventListener('drop', (e) => e.preventDefault());
 
@@ -522,4 +738,33 @@
   });
   el.compressBtn.addEventListener('click', run);
   el.resetBtn.addEventListener('click', reset);
+
+  /* ---------- eventos da junção ---------- */
+  mergeEl.tabs.addEventListener('click', (e) => {
+    const btn = e.target.closest('.tab');
+    if (btn) setView(btn.dataset.view);
+  });
+  mergeEl.drop.addEventListener('click', () => mergeEl.input.click());
+  mergeEl.drop.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); mergeEl.input.click(); }
+  });
+  mergeEl.input.addEventListener('change', (e) => {
+    addMergeFiles(e.target.files);
+    e.target.value = '';
+  });
+  ['dragenter', 'dragover'].forEach((t) =>
+    mergeEl.drop.addEventListener(t, (e) => { e.preventDefault(); mergeEl.drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((t) =>
+    mergeEl.drop.addEventListener(t, (e) => { e.preventDefault(); mergeEl.drop.classList.remove('over'); }));
+  mergeEl.drop.addEventListener('drop', (e) => addMergeFiles(e.dataTransfer.files));
+  mergeEl.addMore.addEventListener('click', () => mergeEl.input.click());
+  mergeEl.clear.addEventListener('click', clearMerge);
+  mergeEl.btn.addEventListener('click', doMerge);
+  mergeEl.compressMerged.addEventListener('click', () => {
+    if (!merge.resultFile) return;
+    setView('compress');
+    loadFile(merge.resultFile);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
 })();
