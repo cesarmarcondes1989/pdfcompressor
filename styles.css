@@ -159,3 +159,14 @@ code{background:var(--panel-2);border:1px solid var(--line);border-radius:5px;pa
   .mergeitem{flex-wrap:wrap}
   .mi-range{width:100%;order:3}
 }
+
+/* ---- imagens -> PDF ---- */
+.imgthumb{width:46px;height:46px;flex:none;border-radius:8px;border:1px solid var(--line);
+  object-fit:cover;background:var(--panel-2)}
+.optgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.opt{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);padding:12px 14px}
+.opt-label{font-size:12.5px;color:var(--muted)}
+.opt select{background:var(--panel-2);border:1px solid var(--line);color:var(--text);
+  border-radius:8px;padding:9px 10px;font:inherit;font-size:14px;cursor:pointer}
+.opt select:focus{outline:none;border-color:var(--accent)}

@@ -1,6 +1,7 @@
 # Ferramentas de PDF
 
-Aplicação web estática para **comprimir**, **separar (quebrar)**, **extrair páginas** e **juntar** arquivos PDF.
+Aplicação web estática para **comprimir**, **separar (quebrar)**, **extrair páginas** e **juntar** arquivos PDF,
+além de **transformar imagens (JPG, PNG, WebP, GIF, BMP, SVG) em PDF**.
 Todo o processamento acontece no navegador do usuário — nenhum arquivo é enviado para servidor algum.
 
 ## Comprimir / separar
@@ -25,6 +26,17 @@ Todo o processamento acontece no navegador do usuário — nenhum arquivo é env
 - Mostra a quantidade de arquivos, o total de páginas do resultado e o tamanho final.
 - A junção não recomprime nada: o conteúdo e o texto originais são preservados.
 - Botão **Comprimir o resultado** envia o PDF unido direto para a aba de compressão.
+
+## Imagens → PDF
+
+- Aba **Imagens → PDF**: selecione ou arraste JPG, PNG, WebP, GIF, BMP ou SVG — cada imagem vira uma página
+  (soltar imagens na aba de compressão também leva para cá).
+- Lista com miniatura, dimensões em pixels e tamanho, reordenável com ↑ e ↓ e com remoção individual.
+- Opções de montagem: **tamanho da página** (A4, Carta ou do tamanho da imagem a 150 DPI),
+  **orientação** (automática por imagem, retrato ou paisagem), **margem** e **qualidade**
+  (original sem recompressão, ou JPEG em 85%, 70% e 50%).
+- A imagem é centralizada e redimensionada para caber sem distorcer; SVG é rasterizado em alta resolução.
+- Botão **Comprimir o resultado** envia o PDF gerado direto para a aba de compressão.
 
 ## Como as estimativas são calculadas
 

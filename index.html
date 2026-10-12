@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PDF: comprimir, separar e juntar</title>
-<meta name="description" content="Comprima, separe e junte arquivos PDF direto no navegador. Escolha o nível de compressão, veja o tamanho antes e depois e baixe o resultado." />
+<title>PDF: comprimir, separar, juntar e criar a partir de imagens</title>
+<meta name="description" content="Comprima, separe e junte PDFs e transforme imagens JPG ou PNG em PDF, direto no navegador. Veja o tamanho antes e depois e baixe o resultado." />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗜️</text></svg>" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
@@ -18,6 +18,7 @@
   <nav class="tabs" id="tabs" aria-label="Ferramentas">
     <button type="button" class="tab" data-view="compress" aria-pressed="true">🗜️ Comprimir / separar</button>
     <button type="button" class="tab" data-view="merge" aria-pressed="false">🔗 Juntar PDFs</button>
+    <button type="button" class="tab" data-view="image" aria-pressed="false">🖼️ Imagens → PDF</button>
   </nav>
 
   <section id="viewCompress">
@@ -165,6 +166,96 @@
       </div>
 
       <p class="note">A junção preserva o conteúdo original de cada arquivo — nada é recomprimido, o texto continua selecionável. Se quiser reduzir o tamanho do arquivo final, use “Comprimir o resultado”.</p>
+    </div>
+  </section>
+
+  <section id="viewImage" hidden>
+    <section id="imgDrop" class="dropzone" tabindex="0" role="button" aria-label="Selecionar imagens">
+      <div class="dz-icon">🖼️</div>
+      <h1>Solte suas imagens aqui</h1>
+      <p>ou <span class="link">clique para escolher os arquivos</span></p>
+      <p class="hint">JPG, PNG, WebP, GIF, BMP ou SVG · cada imagem vira uma página do PDF.</p>
+      <input type="file" id="imgInput" accept="image/*" multiple hidden />
+    </section>
+
+    <p class="error" id="imgError" hidden></p>
+
+    <div id="imgWorkspace" hidden>
+      <h2 class="section-title">Imagens na ordem das páginas</h2>
+      <p class="section-sub">Use ↑ e ↓ para reordenar e ✕ para remover.</p>
+
+      <ol class="mergelist" id="imgList"></ol>
+
+      <div class="actions compact">
+        <button class="ghost" id="imgAddMore" type="button">+ Adicionar mais imagens</button>
+        <button class="ghost" id="imgClear" type="button">Limpar lista</button>
+      </div>
+
+      <h2 class="section-title">Como montar as páginas</h2>
+      <div class="optgrid">
+        <label class="opt">
+          <span class="opt-label">Tamanho da página</span>
+          <select id="optPageSize">
+            <option value="a4" selected>A4 (210 × 297 mm)</option>
+            <option value="letter">Carta (216 × 279 mm)</option>
+            <option value="fit">Do tamanho da imagem</option>
+          </select>
+        </label>
+        <label class="opt">
+          <span class="opt-label">Orientação</span>
+          <select id="optOrientation">
+            <option value="auto" selected>Automática (segue a imagem)</option>
+            <option value="portrait">Retrato</option>
+            <option value="landscape">Paisagem</option>
+          </select>
+        </label>
+        <label class="opt">
+          <span class="opt-label">Margem</span>
+          <select id="optMargin">
+            <option value="0">Sem margem</option>
+            <option value="18" selected>Pequena</option>
+            <option value="36">Média</option>
+            <option value="57">Grande</option>
+          </select>
+        </label>
+        <label class="opt">
+          <span class="opt-label">Qualidade das imagens</span>
+          <select id="optQuality">
+            <option value="original">Original (sem recompressão)</option>
+            <option value="0.85" selected>Alta (JPEG 85%)</option>
+            <option value="0.7">Média (JPEG 70%)</option>
+            <option value="0.5">Econômica (JPEG 50%)</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="summary" id="imgSummary">
+        <div class="sum-col">
+          <span class="sum-label">Imagens</span>
+          <span class="sum-value" id="imgCount">–</span>
+        </div>
+        <div class="sum-col">
+          <span class="sum-label">Páginas no PDF</span>
+          <span class="sum-value" id="imgPages">–</span>
+        </div>
+        <div class="sum-col right">
+          <span class="sum-label">Tamanho <em id="imgSizeTag">(somado)</em></span>
+          <span class="sum-value accent" id="imgSize">–</span>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="imgBtn" type="button">Gerar PDF</button>
+        <a class="primary success" id="imgDownload" hidden download>⬇ Baixar PDF</a>
+        <button class="ghost" id="imgCompressBtn" type="button" hidden>Comprimir o resultado →</button>
+      </div>
+
+      <div class="progress" id="imgProgress" hidden>
+        <div class="bar"><div class="bar-fill" id="imgBarFill"></div></div>
+        <span id="imgProgressText">Montando o PDF…</span>
+      </div>
+
+      <p class="note">Cada imagem vira uma página, centralizada e redimensionada para caber sem distorcer. Em “Original” o arquivo é embutido como está (JPG e PNG); os demais formatos são convertidos para JPEG.</p>
     </div>
   </section>
 </main>
